@@ -188,6 +188,12 @@
     margin-top: 10px;
     height: 18px;
   }
+  .pw-remember {
+    display: flex; align-items: center; justify-content: center; gap: 6px;
+    font-size: 12px; color: var(--text-muted);
+    margin-bottom: 14px; user-select: none; cursor: pointer;
+  }
+  .pw-remember input { accent-color: var(--accent); cursor: pointer; }
 
   /* ── APP WRAPPER ─────────────────────────────────── */
   #app { display: none; flex-direction: column; min-height: 100vh; }
@@ -881,6 +887,7 @@
     <h1 class="pw-title">My Tea Collection</h1>
     <p class="pw-subtitle">パスワードを入力してください</p>
     <input type="password" class="pw-input" id="pw-input" placeholder="Password" autocomplete="off">
+    <label class="pw-remember"><input type="checkbox" id="pw-remember" checked> このブラウザを記憶する</label>
     <button class="pw-btn" onclick="checkPw()">Enter ✦</button>
     <p class="pw-error" id="pw-error"></p>
   </div>
@@ -1012,6 +1019,13 @@
           <button class="pw-btn" style="width:100%;margin:0;padding:12px;" onclick="copyShareUrl()">🔗 リンクをコピー</button>
           <p id="share-msg" style="font-size:12px;color:var(--accent);margin-top:8px;text-align:center;min-height:16px;"></p>
         </div>
+
+        <!-- ログアウト -->
+        <div style="background:var(--surface);border:1px solid var(--border);border-radius:var(--radius);padding:20px;">
+          <h3 style="font-size:15px;font-weight:700;color:var(--text);margin-bottom:6px;">🔒 ログイン状態</h3>
+          <p style="font-size:13px;color:var(--text-muted);margin-bottom:12px;">このブラウザでのログイン記憶を解除します。次回アクセス時にパスワードが必要になります。</p>
+          <button class="pw-btn" style="width:100%;margin:0;padding:12px;background:var(--surface);color:var(--rose-600);border:1px solid var(--rose-200);" onclick="logout()">ログアウト</button>
+        </div>
       </div>
     </section>
   </main>
@@ -1020,6 +1034,7 @@
 <script>
 const CSV_URL = 'https://docs.google.com/spreadsheets/d/e/2PACX-1vQ1qMVoiJ7paL9DLLmfiMalRJaqK3mcNfkVujDAojlehIaY1bogsofhBgmhxAwZ1LalxmRcyJ8oK6Wk/pub?gid=0&single=true&output=csv';
 const PASSWORD = 'Lkun';
+const AUTH_KEY = 'tea_auth_ok';
 
 let teaData = [];
 let columns = [];
@@ -1082,15 +1097,35 @@ const NONE_VALUES = new Set(['無','なし','none','no flavor','unflavored','pla
 function checkPw() {
   const v = document.getElementById('pw-input').value;
   if (v === PASSWORD) {
-    document.getElementById('pw-screen').style.display = 'none';
-    document.getElementById('app').classList.add('active');
-    init();
+    const remember = document.getElementById('pw-remember').checked;
+    if (remember) {
+      try { localStorage.setItem(AUTH_KEY, '1'); } catch(e) {}
+    }
+    unlockApp();
   } else {
     document.getElementById('pw-error').textContent = 'パスワードが違います';
     document.getElementById('pw-input').value = '';
   }
 }
 document.getElementById('pw-input').addEventListener('keydown', e => { if (e.key === 'Enter') checkPw(); });
+
+function unlockApp() {
+  document.getElementById('pw-screen').style.display = 'none';
+  document.getElementById('app').classList.add('active');
+  init();
+}
+
+function logout() {
+  try { localStorage.removeItem(AUTH_KEY); } catch(e) {}
+  location.reload();
+}
+
+// 記憶されたログイン状態があれば自動でアンロック
+(function tryAutoLogin() {
+  let ok = false;
+  try { ok = localStorage.getItem(AUTH_KEY) === '1'; } catch(e) {}
+  if (ok) unlockApp();
+})();
 
 // ── INIT ──────────────────────────────────────────────────
 async function init() {
